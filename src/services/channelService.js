@@ -57,3 +57,40 @@ export const getChannelByIdService = async (channelId, userId) => {
     throw error;
   }
 };
+
+export const updateChannelService = async (channelId, channelData, userId) => {
+  try {
+    const channel =
+      await channelRepository.getChannelWithWorkspaceDetails(channelId);
+    if (!channel || !channel.workspaceId) {
+      throw new ClientError({
+        message: 'Channel not found with the provided ID',
+        explanation: 'Invalid data sent from the client',
+        statusCode: StatusCodes.NOT_FOUND
+      });
+    }
+
+    const isUserPartOfWorkspace = isUserMemberOfWorkspace(
+      channel.workspaceId,
+      userId
+    );
+
+    if (!isUserPartOfWorkspace) {
+      throw new ClientError({
+        message:
+          'User is not a member of the workspace and hence cannot access the channel',
+        explanation: 'User is not a member of the workspace',
+        statusCode: StatusCodes.UNAUTHORIZED
+      });
+    }
+
+    const updatedChannel = await channelRepository.update(
+      channelId,
+      channelData
+    );
+    return updatedChannel;
+  } catch (error) {
+    console.log('update channel service error', error);
+    throw error;
+  }
+};
